@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
   s.name        = 'inkit'
-  s.version     = '0.0.1'
+  s.version     = '0.0.12'
   
-  s.require_paths = ["./"]
+  s.require_paths = ["./lib"]
 
   s.author      = "Szikszai Gusztáv"
   s.email       = 'ink-support@hotmail.com'
@@ -11,14 +11,12 @@ Gem::Specification.new do |s|
   s.description = "Client library to pull and render INK views."
   
   s.files = [
-   './inkit.rb',
-   './Library.rb',
-   './Utils.rb',
-   './Renderers/Haml.rb',
-   './Renderers/Sass.rb',
+   './lib/inkit.rb',
+   './lib/cache.rb'
   ]
   
-  s.add_dependency("haml")
-  s.add_dependency("sass")
+  s.test_files = Dir.glob('test/*')
+  
+  s.add_dependency("mustache")
   
 end

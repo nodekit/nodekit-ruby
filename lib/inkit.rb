@@ -1,35 +1,16 @@
-require 'sass'
-require 'json'
-require 'haml'
 require "net/http"
 require "uri"
 require 'cgi'
 require 'mustache'
 require 'time'
 
-load File.dirname(__FILE__)+"/Cache.rb"
-
-class Hash
-  def to_query
-    map{|k,v| "#{::CGI.escape(k.to_s)}=#{::CGI.escape(v)}"}.join("&")
-  end
-end
-
-class String
-  def indent(n)
-    if n >= 0
-      gsub(/^/, ' ' * n)
-    else
-      gsub(/^ {0,#{-n}}/, "")
-    end
-  end
-end
+load File.dirname(__FILE__)+"/utils.rb"
+load File.dirname(__FILE__)+"/cache.rb"
 
 class Inkit
 
   attr_accessor :token
 
-  # TODO clear cache when secret changes
   # Constructor
   def initialize(options)
     raise 'Please provide your secret key!' unless options[:secret]
@@ -38,7 +19,6 @@ class Inkit
     @cache = Cache.new(@secret)
   end
   
-  # Pull a view from the inkit api
   def digest(hash)
     OpenSSL::HMAC::hexdigest("sha256", @secret, hash.to_query)
   end
