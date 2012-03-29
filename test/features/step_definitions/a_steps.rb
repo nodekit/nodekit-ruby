@@ -18,10 +18,10 @@ end
 
 When /^I render the (.*) view in:/ do |view,table|
   table.raw.each_with_index do |a,i|
-    @code.push @ink.method(a[0].downcase).call view
+    code = @ink.method(a[0].downcase).call view
+    @code.push code
   end
 end
-
 
 When /^I try to get (.*) view as (.*)$/ do |view,type|
   begin
@@ -37,7 +37,7 @@ When /^I try to get (.*) view when not modified$/ do |view|
   data[:token] = @ink.token
   uri = URI("http://inkit.org/api/document?"+data.to_query)
   req = ::Net::HTTP::Get.new uri.request_uri
-  req['If-Modified-Since'] = Time.now.rfc2822
+  req['If-Modified-Since'] = DateTime.now.to_time.rfc2822
   res = ::Net::HTTP.start(uri.host, uri.port) {|http|
     http.request(req)
   }

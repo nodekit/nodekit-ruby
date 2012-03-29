@@ -9,7 +9,7 @@ load File.dirname(__FILE__)+"/cache.rb"
 
 class Inkit
 
-  attr_accessor :token
+  attr_reader :token, :secret
 
   # Constructor
   def initialize(options)
@@ -24,23 +24,23 @@ class Inkit
   end
   
   def pull(view,type = 'haml')
-    data = {:view => view.to_s, :type => type}
+    data = {:view => view.to_s, :type => type, :timestamp => Time.now.rfc2822}
     data[:digest] = digest(data)
     data[:token] = @token
     uri = URI("http://inkit.org/api/document?"+data.to_query)
     req = ::Net::HTTP::Get.new uri.request_uri
-    if @cache.cached? view
-      req['If-Modified-Since'] = @cache.cached_at view
+    if @cache.cached? view+"."+type
+      req['If-Modified-Since'] = @cache.cached_at view+"."+type
     end
     res = ::Net::HTTP.start(uri.host, uri.port) {|http|
       http.request(req)
     }
     if res.is_a?(::Net::HTTPSuccess)
-      @cache[view] = res.body
-      return @cache[view]
+      @cache[view+"."+type] = res.body
+      return @cache[view+"."+type]
     end
     if res.is_a?(::Net::HTTPNotModified)
-      return @cache[view]
+      return @cache[view+"."+type]
     end
     raise res.code
   end
