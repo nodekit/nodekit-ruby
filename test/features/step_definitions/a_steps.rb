@@ -6,6 +6,12 @@ def test(type,code)
       code =~ /%[A-Za-z0-9]*/
     when 'html'
       code =~ /<[A-Za-z0-9]*>/
+    when 'json'
+      code =~ /^\{/
+    when 'jade'
+      code =~ /\((.*)='(.*)'\)/
+    when 'coffeekup'
+      code =~ /,\s->/
     else
       false
   end
@@ -31,13 +37,23 @@ When /^I try to get (.*) view as (.*)$/ do |view,type|
   end
 end
 
+When /^I query for documents$/ do
+  @docs = @ink.documents
+end
+
+Then /^I shoud get an array of documents$/ do
+  @docs.class.should == Array
+end
+
+
+
 When /^I try to get (.*) view when not modified$/ do |view|
-  data = {:view => view.to_s, :type => 'haml'}
+  data = {:view => view.to_s, :type => 'haml', :timestamp => DateTime.now.rfc2822}
+  data[:cached_at] = DateTime.now.rfc2822
   data[:digest] = @ink.digest(data)
   data[:token] = @ink.token
-  uri = URI("http://inkit.org/api/document?"+data.to_query)
+  uri = URI("http://#{@ink.endpoint}/api/document?"+data.to_query)
   req = ::Net::HTTP::Get.new uri.request_uri
-  req['If-Modified-Since'] = DateTime.now.to_time.rfc2822
   res = ::Net::HTTP.start(uri.host, uri.port) {|http|
     http.request(req)
   }
@@ -52,7 +68,7 @@ end
 
 Then /^I shoud get the code in:$/ do |table|
   table.raw.each_with_index do |a,i|
-    test(a[0].downcase,@code[i]).should be_true
+    test(a[0].downcase,@code[i].to_s).should be_true
   end
 end
 

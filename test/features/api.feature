@@ -8,9 +8,20 @@ Feature: API Pull
      When I render the asd view in:
       | Haml |
       | Html |
+      | Jade |
+      | Json |
+      | Coffeekup |
      Then I shoud get the code in:
       | Haml |
       | Html |
+      | Jade |
+      | Json |
+      | Coffeekup |
+  
+  Scenario: Getting Documents
+    Given I have QntGyT3P00T secret and egxM28qoFkP token
+     When I query for documents
+     Then I shoud get an array of documents
   
   Scenario: Document not found
     Given I have QntGyT3P00T secret and egxM28qoFkP token

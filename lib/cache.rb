@@ -26,7 +26,7 @@ class Inkit
     def filename(name)
       a = File.extname name
       b = File.basename name, a
-      @cache_dir+"/."+OpenSSL::HMAC::hexdigest("sha256",@secret,a.to_s)+a
+      @cache_dir+"/."+OpenSSL::HMAC::hexdigest("sha256",@secret,b.to_s)+a
     end
   end
 end
