@@ -1,5 +1,15 @@
 require "cucumber/rake/task"
 
-Cucumber::Rake::Task.new(:test) do |task|
+Cucumber::Rake::Task.new(:cucumber) do |task|
   task.cucumber_opts = ["features"]
 end
+
+task :travis do
+  ["rake cucumber"].each do |cmd|
+    puts "Starting to run #{cmd}..."
+    system("export DISPLAY=:99.0 && bundle exec #{cmd}")
+    raise "#{cmd} failed!" unless $?.exitstatus == 0
+  end
+end
+
+
