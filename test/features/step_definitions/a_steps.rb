@@ -19,6 +19,7 @@ end
 
 Given /^I have (.*) secret and (.*) token$/ do |secret, token|
   @ink = Inkit.new({:secret => secret, :token => token})
+  @ink.endpoint = 'api.inkit.dev'
   @code = []
 end
 
@@ -48,11 +49,11 @@ end
 
 
 When /^I try to get (.*) view when not modified$/ do |view|
-  data = {:view => view.to_s, :type => 'haml', :timestamp => DateTime.now.rfc2822}
-  data[:cached_at] = DateTime.now.rfc2822
+  data = {:timestamp => DateTime.now.rfc2822}
+  data[:modified_since] = DateTime.now.rfc2822
   data[:digest] = @ink.digest(data)
   data[:token] = @ink.token
-  uri = URI("http://#{@ink.endpoint}/api/document?"+data.to_query)
+  uri = URI("http://#{@ink.endpoint}/document/#{view.to_s}.haml?"+data.to_query)
   req = ::Net::HTTP::Get.new uri.request_uri
   res = ::Net::HTTP.start(uri.host, uri.port) {|http|
     http.request(req)

@@ -3,22 +3,52 @@ require "uri"
 require 'cgi'
 require 'mustache'
 require 'time'
+require 'json'
 
 load File.dirname(__FILE__)+"/utils.rb"
 load File.dirname(__FILE__)+"/cache.rb"
 
+module INK
+  TYPE_HTML = {'Content-Type' => 'text/html'}
+  class INK::RackAdapter
+    def initialize(app, options)
+      @app = app if app.respond_to?(:call)
+      @ink = Inkit.new options
+      @views = @ink.documents.map { |view| "/#{view['name']}" }
+    end                
+
+    def call(env)
+      @status, @headers, @response = @app.call(env)
+      locals = JSON.parse @response[0]
+      request = Rack::Request.new(env)
+      view = request.path_info
+      filename = request.path_info.split("/").last
+      a = filename.split(".")
+      name = a[0]
+      ext = a.last
+      if ext == 'css'
+        puts request.referer.gsub "http://"+request.host_with_port+"/", ""
+      elsif @views.include? view
+        view = view[1..view.length]
+        return [200,TYPE_HTML,[@ink.html(view,{:locals => locals})]]
+      end
+      return @app ? @app.call(env) : [404,TYPE_HTML,['Not found!']]
+    end      
+  end
+end
+
 class Inkit
 
-  attr_reader :token, :secret, :endpoint
+  attr_reader :token, :secret
+  attr_accessor :endpoint
 
   # Constructor
   def initialize(options)
     raise 'Please provide your secret key!' unless options[:secret]
     @secret = options[:secret].to_s
     @token = options[:token].to_s
-    @endpoint = 'localhost:9292'
+    @endpoint = 'api.inkit.org'
     @cache = Cache.new(@secret)
-    @nocache = !options[:cache] or true
   end
   
   def documents
@@ -31,6 +61,10 @@ class Inkit
   
   def html(view, options = {})
     render(view, options)
+  end
+  
+  def css(view, options = {})
+    render(view, options, 'css')
   end
   
   def json(view, options = {})
@@ -51,23 +85,15 @@ class Inkit
   
   def render(view, options = {}, type = 'html')
     ret = self.pull(view,type)
-    if options[:layout]
-      layout = render(options[:layout], {}, type)
-      indent = 0
-      if layout =~ /( *)\{{3}yield\}{3}/
-        indent = $1.length
-      end
-      ret = "\n#{ret}"
-      ret = Mustache.render(layout,:yield => Mustache.render(ret.indent(indent)))
-    end
     ret.gsub /\s*$/, ''
+    Mustache.render(ret, options[:locals])
   end
   
   def pull(view,type = 'haml')
     v = view+"."+type
-    data = {:view => view.to_s, :type => type}
-    data[:cached_at ] = @cache.cached_at(v) if @cache.cached?(v) and not @nocache
-    res = request(:document, data )
+    data = {}
+    data[:modified_since ] = @cache.cached_at(v) if @cache.cached?(v)
+    res = request("document/"+v, data )
     if res.is_a?(::Net::HTTPSuccess)
       @cache[v] = res.body
       return @cache[v]
@@ -83,10 +109,10 @@ class Inkit
   end
   
   def request(path, data = {})
-    data[:timestamp] = DateTime.now.rfc2822
+    data[:timestamp] = DateTime.now.iso8601
     data[:digest] = digest(data)
     data[:token] = @token
-    uri = URI("http://#{@endpoint}/api/#{path.to_s}?"+data.to_query)
+    uri = URI("http://#{@endpoint}/#{path.to_s}?"+data.to_query)
     req = ::Net::HTTP::Get.new uri.request_uri
     res = ::Net::HTTP.start(uri.host, uri.port) {|http|
       http.request(req)
