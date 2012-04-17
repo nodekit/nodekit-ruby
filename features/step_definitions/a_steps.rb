@@ -1,4 +1,4 @@
-require '../lib/inkit'
+require './lib/inkit'
 
 def test(type,code)
   case type
@@ -19,7 +19,6 @@ end
 
 Given /^I have (.*) secret and (.*) token$/ do |secret, token|
   @ink = Inkit.new({:secret => secret, :token => token})
-  @ink.endpoint = 'api.inkit.dev'
   @code = []
 end
 
